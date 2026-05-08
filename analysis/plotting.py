@@ -1,6 +1,5 @@
 # import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import pandas as pd
@@ -9,9 +8,6 @@ from scipy.interpolate import interp1d
 from pathlib import Path
 from .utilities import rt_quasi_deuteron
 from .presets import *
-# # overall styling for scatter error bar plots
-# SCATTER_SETTING = {'s':10, 'edgecolors':'gray', 'linewidth':0.5, 'alpha':1}
-# ERRORBAR_SETTING = {'markersize':0, 'capsize':0, 'lw':1, 'fmt':'D', 'elinewidth':1, 'alpha':0.5}
 
 # plot lists
 EXP_QVPLOT_LIST = ['Yamaguchi', 'Barreau', 'Jourdan', 'Goldemberg', 'Buki', 'Photo-production']
@@ -162,9 +158,6 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
     # TODO: add comments
 
     fig, axs = plt.subplots(nrows=len(qvcenters), ncols=2, figsize=(figsize_per_row[0], figsize_per_row[1] * len(qvcenters) + 1.5), dpi=200, sharex=sharex, squeeze=False)
-    scifmt = ScalarFormatter(useMathText=True)
-    scifmt.set_scientific(True)
-    scifmt.set_powerlimits((0, 0))
     handles = []
     labels = []
 
@@ -257,17 +250,15 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
         labels.extend(l)
 
         # main axs styling
-        axs[i, 0].text(0.95, 0.95,'$R_L$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV)',transform=axs[i, 0].transAxes,ha='right',va='top',color='gray')
+        axs[i, 0].text(0.95, 0.95,'$R_L$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV/c)',transform=axs[i, 0].transAxes,ha='right',va='top',color='gray')
         axs[i, 0].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 0].minorticks_on()
-        # axs[i, 0].yaxis.set_major_formatter(scifmt)
         axs[i, 0].set_ylabel(r'$R_L$ (GeV$^{-1}$)')
         axs[i, 0].set_xlim(0, qvcenter*1.05)
         axs[i, 0].set_ylim(0, RLRT_QVPLOT_HEIGHTS[qvcenter][0])
-        axs[i, 1].text(0.95, 0.95,'$R_T$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV)',transform=axs[i, 1].transAxes,ha='right',va='top',color='gray')
+        axs[i, 1].text(0.95, 0.95,'$R_T$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV/c)',transform=axs[i, 1].transAxes,ha='right',va='top',color='gray')
         axs[i, 1].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 1].minorticks_on()
-        # axs[i, 1].yaxis.set_major_formatter(scifmt)
         axs[i, 1].set_ylabel(r'$R_T$ (GeV$^{-1}$)')
         axs[i, 1].set_xlim(0, qvcenter*1.05)
         axs[i, 1].set_ylim(0, RLRT_QVPLOT_HEIGHTS[qvcenter][1])
@@ -316,9 +307,6 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
         exp_plot_list : list[str] = EXP_Q2PLOT_LIST, mc_plot_list : list[str] = MC_Q2PLOT_LIST) -> Figure:
     
     fig, axs = plt.subplots(nrows=len(q2centers), ncols=2, figsize=(figsize_per_row[0], figsize_per_row[1] * len(q2centers) + 1.5), dpi=200, sharex=sharex, squeeze=False)
-    scifmt = ScalarFormatter(useMathText=True)
-    scifmt.set_scientific(True)
-    scifmt.set_powerlimits((0, 0))
     handles = []
     labels = []
 
@@ -451,13 +439,11 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
         axs[i, 0].text(0.95, 0.95,'$R_L$ ($Q^2$ = '+f'{q2center} GeV$^2$/c$^2$)',transform=axs[i, 0].transAxes,ha='right',va='top',color='gray')
         axs[i, 0].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 0].minorticks_on()
-        # axs[i, 0].yaxis.set_major_formatter(scifmt)
         axs[i, 0].set_ylabel(r'$R_L$ (GeV$^{-1}$)')
         axs[i, 0].set_ylim(0, RLRT_Q2PLOT_HEIGHTS[q2center][0])
         axs[i, 1].text(0.95, 0.95,'$R_T$ ($Q^2$ = '+f'{q2center} GeV$^2$/c$^2$)',transform=axs[i, 1].transAxes,ha='right',va='top',color='gray')
         axs[i, 1].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 1].minorticks_on()
-        # axs[i, 1].yaxis.set_major_formatter(scifmt)
         axs[i, 1].set_ylabel(r'$R_T$ (GeV$^{-1}$)')
         axs[i, 1].set_ylim(0, RLRT_Q2PLOT_HEIGHTS[q2center][1])
 
