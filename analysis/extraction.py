@@ -385,7 +385,7 @@ def extract_response_q2bin_excenter(df : pd.DataFrame, q2center : float = 0.01, 
     df_rlrt = []
     for excenter in np.sort(df_q2bin['Excenter_q2'].unique()):
         df_exbin = df_q2bin.loc[(df_q2bin['Excenter_q2'] == excenter)]
-        nuc = excenter + df_q2bin/(2*MASS_C12)
+        nuc = excenter + q2center/(2*MASS_C12)
         qvc2 = (q2center+nuc**2)
         w2c = MASS_NUCLEON**2 + 2 * MASS_NUCLEON * nuc - q2center
         x = np.array(df_exbin["epsilon"])        
@@ -402,7 +402,7 @@ def extract_response_q2bin_excenter(df : pd.DataFrame, q2center : float = 0.01, 
             rlerr = a_err
             rt = (2*b_opt*q2center/qvc2)
             rterr = (2*b_err*q2center/qvc2)
-            df_rlrt.append({'Q2center':q2center,'nu':nuc,'W2':w2c,'Ex':excenter,'RL':rl,'RLerr':rlerr,'RT':rt,'RTerr':rterr,'Chi2':chi2,
+            df_rlrt.append({'q2center':q2center,'nu':nuc,'w2':w2c,'ex':excenter,'rl':rl,'rlerr':rlerr,'rt':rt,'rterr':rterr,'chi2':chi2,
                     'num_points':len(y)})
     
     df_rlrt = pd.DataFrame(df_rlrt)
@@ -442,7 +442,7 @@ def extract_response_qvbin_w2center(df : pd.DataFrame, qvcenter : float = 0.01, 
             rlerr = a_err
             rt = (2 * b_opt * q2center / qvc2)
             rterr = (2 * b_err * q2center / qvc2)
-            df_rlrt.append({'qvcenter':qvcenter,'nu':nuc,'W2':w2center,'Ex':exc,'RL':rl,'RLerr':rlerr,'RT':rt,'RTerr':rterr,'Chi2':chi2,
+            df_rlrt.append({'qvcenter':qvcenter,'nu':nuc,'w2':w2center,'ex':exc,'rl':rl,'rlerr':rlerr,'rt':rt,'rterr':rterr,'chi2':chi2,
                     'num_points':len(y)})             
 
     df_rlrt = pd.DataFrame(df_rlrt)
@@ -482,7 +482,7 @@ def extract_response_qvbin_excenter(df : pd.DataFrame, qvcenter : float = 0.01, 
             rlerr = a_err
             rt = (2*b_opt*q2center/qvc2)
             rterr = (2*b_err*q2center/qvc2)
-            df_rlrt.append({'qvcenter':qvcenter,'nu':nuc,'W2':w2c,'Ex':excenter,'RL':rl,'RLerr':rlerr,'RT':rt,'RTerr':rterr,'Chi2':chi2,
+            df_rlrt.append({'qvcenter':qvcenter,'nu':nuc,'w2':w2c,'ex':excenter,'rl':rl,'rlerr':rlerr,'rt':rt,'rterr':rterr,'chi2':chi2,
                     'num_points':len(y)})
 
     df_rlrt = pd.DataFrame(df_rlrt)
@@ -493,6 +493,14 @@ def extract_response_qvbins(df : pd.DataFrame, qvcenters : list[float] = QVCENTE
     for qvcenter in qvcenters:
         df_rlrt.append(extract_response_qvbin_excenter(df=df, qvcenter=qvcenter, **kwargs))
         df_rlrt.append(extract_response_qvbin_w2center(df=df, qvcenter=qvcenter, **kwargs))
+    df_rlrt = pd.concat(df_rlrt)
+    return df_rlrt
+
+def extract_response_q2bins(df : pd.DataFrame, q2centers : list[float] = Q2CENTERS, **kwargs) -> pd.DataFrame:
+    df_rlrt = []
+    for q2center in q2centers:
+        df_rlrt.append(extract_response_q2bin_excenter(df=df, q2center=q2center, **kwargs))
+        df_rlrt.append(extract_response_q2bin_w2center(df=df, q2center=q2center, **kwargs))
     df_rlrt = pd.concat(df_rlrt)
     return df_rlrt
 
