@@ -15,7 +15,7 @@ from .presets import *
 
 # plot lists
 EXP_QVPLOT_LIST = ['Yamaguchi', 'Barreau', 'Jourdan', 'Goldemberg', 'Buki', 'Photo-production']
-EXP_Q2PLOT_LIST = ['Baran', 'Sheren', 'Photo-production']
+EXP_Q2PLOT_LIST = ['Yamaguchi', 'Baran', 'Sheren', 'Photo-production']
 THEORY_QVPLOT_LIST = ['SuSAv2', 'GFMC','ED-RMF', 'STA-QMC', 'CFG']
 THEORY_Q2PLOT_LIST = ['SuSAv2', 'ED-RMF']
 MC_QVPLOT_LIST = ['NuWro-SF', 'NuWro-SF-FSI', 'ACHILLES']
@@ -156,7 +156,7 @@ RLRT_Q2INSET_XLIMS = {
     3.75:[1.7,2.7]
 }
 
-def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float] = [0.3, 0.38, 0.57], figsize_per_row : tuple[float, float] = (11, 2),
+def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float] = [0.3, 0.38, 0.57], figsize_per_row : tuple[float, float] = (11, 1.8),
         sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_QVPLOT_LIST,
         exp_plot_list : list[str] = EXP_QVPLOT_LIST, mc_plot_list : list[str] = MC_QVPLOT_LIST) -> Figure:
     # TODO: add comments
@@ -260,14 +260,14 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
         axs[i, 0].text(0.95, 0.95,'$R_L$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV)',transform=axs[i, 0].transAxes,ha='right',va='top',color='gray')
         axs[i, 0].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 0].minorticks_on()
-        axs[i, 0].yaxis.set_major_formatter(scifmt)
+        # axs[i, 0].yaxis.set_major_formatter(scifmt)
         axs[i, 0].set_ylabel(r'$R_L$ (GeV$^{-1}$)')
         axs[i, 0].set_xlim(0, qvcenter*1.05)
         axs[i, 0].set_ylim(0, RLRT_QVPLOT_HEIGHTS[qvcenter][0])
         axs[i, 1].text(0.95, 0.95,'$R_T$ ($|\mathbf{q}|$ = '+f'{qvcenter} GeV)',transform=axs[i, 1].transAxes,ha='right',va='top',color='gray')
         axs[i, 1].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 1].minorticks_on()
-        axs[i, 1].yaxis.set_major_formatter(scifmt)
+        # axs[i, 1].yaxis.set_major_formatter(scifmt)
         axs[i, 1].set_ylabel(r'$R_T$ (GeV$^{-1}$)')
         axs[i, 1].set_xlim(0, qvcenter*1.05)
         axs[i, 1].set_ylim(0, RLRT_QVPLOT_HEIGHTS[qvcenter][1])
@@ -300,7 +300,10 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
     unique = dict(zip(labels, handles))
     handles = list(unique.values())
     labels = list(unique.keys())
-    fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.1), frameon=False)
+    if len(qvcenters) == 3:
+        fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.08), frameon=False)
+    else:
+        fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02), frameon=False)
     # fig.tight_layout()
     if figshow:
         plt.show()
@@ -308,7 +311,7 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
 
     return fig
 
-def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float] = [0.093, 0.12, 0.16], figsize_per_row : tuple[float, float] = (11, 2),
+def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float] = [0.093, 0.12, 0.16], figsize_per_row : tuple[float, float] = (11, 1.8),
         sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_Q2PLOT_LIST,
         exp_plot_list : list[str] = EXP_Q2PLOT_LIST, mc_plot_list : list[str] = MC_Q2PLOT_LIST) -> Figure:
     
@@ -414,7 +417,7 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
 
         # plot this analysis
         df_q2bin = df_this_analysis.loc[df_this_analysis['q2center'] == q2center]
-        if q2center in [0.020, 0.026, 0.040, 0.056, 0.093]:
+        if q2center in [0.02, 0.026, 0.04, 0.056, 0.093]:
             # avoid overlapping with Yamaguchi
             nu_yam = sheet_exp_rt.loc[(sheet_exp_rt['q2']==q2center) & (sheet_exp_rt['experiment']=='Yamaguchi')]['nu'].max()
             df_q2bin = df_q2bin.loc[df_q2bin['nu'] >= nu_yam]
@@ -448,13 +451,13 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
         axs[i, 0].text(0.95, 0.95,'$R_L$ ($Q^2$ = '+f'{q2center} GeV$^2$/c$^2$)',transform=axs[i, 0].transAxes,ha='right',va='top',color='gray')
         axs[i, 0].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 0].minorticks_on()
-        axs[i, 0].yaxis.set_major_formatter(scifmt)
+        # axs[i, 0].yaxis.set_major_formatter(scifmt)
         axs[i, 0].set_ylabel(r'$R_L$ (GeV$^{-1}$)')
         axs[i, 0].set_ylim(0, RLRT_Q2PLOT_HEIGHTS[q2center][0])
         axs[i, 1].text(0.95, 0.95,'$R_T$ ($Q^2$ = '+f'{q2center} GeV$^2$/c$^2$)',transform=axs[i, 1].transAxes,ha='right',va='top',color='gray')
         axs[i, 1].tick_params(which='both', direction='in', top=True, right=True)
         axs[i, 1].minorticks_on()
-        axs[i, 1].yaxis.set_major_formatter(scifmt)
+        # axs[i, 1].yaxis.set_major_formatter(scifmt)
         axs[i, 1].set_ylabel(r'$R_T$ (GeV$^{-1}$)')
         axs[i, 1].set_ylim(0, RLRT_Q2PLOT_HEIGHTS[q2center][1])
 
@@ -485,7 +488,11 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
     unique = dict(zip(labels, handles))
     handles = list(unique.values())
     labels = list(unique.keys())
-    fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02), frameon=False)
+    if len(q2centers) == 3:
+        fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.08), frameon=False)
+    else:
+        fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.015), frameon=False)
+
     # fig.tight_layout()
     if figshow:
         plt.show()
