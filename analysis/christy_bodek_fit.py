@@ -83,8 +83,11 @@ XVALC = _pad1([
     0.10070e+01, 0.97472e+00, 0.10059e+01, 0.98892e+00, 0.99434e+00,
     0.10000e+01, 0.99596e+00, 0.10028e+01, 0.10122e+01, 0.10045e+01,
     0.79845e+00, 0.11295e-05, -0.97071e+00, 0.92502e+00, 0.20146e+01,
-    0.24416e+01, 0.24499e+01, 0.31154e+01, 0.72998e+00, 0.22800e+00,
-    0.76502e-02, 0.25718e+00, 0.31429e-01, 0.58780e-01, -0.15059e+00,
+    # 0.24416e+01, 0.24499e+01, 0.31154e+01, 0.72998e+00, 0.22800e+00,
+    # 0.76502e-02, 0.25718e+00, 0.31429e-01, 0.58780e-01, -0.15059e+00,
+    # FIXME: xvlac[35], xvlac[37] for Ca40
+    0.24416e+01, 0.24499e+01, 0.31154e+01, 0.72998e+00, 0.26000e+00,
+    0.76502e-02, 0.29000e+00, 0.31429e-01, 0.58780e-01, -0.15059e+00,
     0.38790e-01, 0.77051e-01, 0.26795e+00, 0.17673e+00, 0.10451e-01,
 ])
 
@@ -574,7 +577,8 @@ def qenuc21off(z: float, a: float, q2: float, w2: float, xvalc: Sequence[float])
     if ia > 2:
         esmin = 0.020
         if ia == 12:
-            esmin = 0.0165
+            # esmin = 0.0165
+            esmin = 0.022 # temporary
         kf = xvalc[35]
         es = esmin + xvalc[36]
         if qv < 1.5:
@@ -672,6 +676,8 @@ def qenuc21off(z: float, a: float, q2: float, w2: float, xvalc: Sequence[float])
     f1 = mp * fy / kf * gt / 2.0
 
     cof = math.sqrt(max(ex - esmin, 0.0)) / math.sqrt(0.025 - esmin)
+    # cof = math.sqrt(max(ex - esmin, 0.0)) / math.sqrt(0.038 - esmin) # FIXME: temporary
+
     cof = _clamp(cof, 0.0, 1.0)
     if ex <= esmin:
         cof = 0.0
@@ -921,7 +927,8 @@ def nuc12sf(z: float, a: float, nu: float, q2p: float, state: int) -> Tuple[floa
     q2 = max(q2p, 0.0)
     qv2 = q2 + nu * nu
     # smwid = 0.0035
-    smwid = 0.001
+    smwid = 0.050
+    # smwid = 0.001
     width = math.sqrt(smwid * smwid + wid[state] * wid[state])
     norm = width * math.sqrt(pi)
 
@@ -1177,6 +1184,7 @@ def calculate_response_table(table: pd.DataFrame | np.ndarray | Iterable[tuple[f
     rows = []
     for qv, nu in zip(qv_values, nu_values):
         row = calculate_response_point(float(qv), float(nu), a=a, z=z, xvalc=xvalc)
+        # row = calculate_response_point(float(qv), float(nu), a=12, z=6, xvalc=xvalc)
         if row is not None:
             rows.append(row)
         else:
@@ -1197,6 +1205,11 @@ def calculate_response_table(table: pd.DataFrame | np.ndarray | Iterable[tuple[f
                 "rlns": 0.0})
 
     return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+    # rows = pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+    # for col in ["rttot", "rltot", "rtqe", "rlqe",
+    #     "rtie", "rlie", "rte", "rle", "rtns", "rlns"]:
+    #     rows[col] = rows[col] * z / 6 # scale from carbon to target nucleus
+    # return rows
 
 
 # -----------------------------------------------------------------------------
@@ -1221,7 +1234,12 @@ def vcoul(a: float, z: float) -> float:
     This function follows that active Fortran behavior exactly.
     """
     _ = (a, z)
-    return 0.0031
+    # return 0.0031
+    return 0.0074
+    # if a == 40 and z == 20:
+    #     return 0.0074
+    # else:
+    #     return 0.0031
 
 
 
@@ -1263,7 +1281,8 @@ def nuccs12cs(z: float, a: float, beam_energy: float, scattered_energy: float,
     if not (1 <= state <= 22):
         return 0.0
 
-    smearing_width = 0.00048
+    # smearing_width = 0.00048
+    smearing_width = 0.002 # FIXME: smwidth
     total_width = math.sqrt(smearing_width * smearing_width + state_width[state - 1] * state_width[state - 1])
     normalization = total_width * math.sqrt(pi)
 
