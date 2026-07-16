@@ -1,0 +1,149 @@
+ve/del *
+exec standard.kumac
+set lwid 5
+set vsiz 0.3
+set ltyp 1
+set ylab 1.0
+set xlab 1.0
+set yval 80.0
+set xval 0.25
+set lwid 7
+set ymgl 2.75
+set xmgl 2.75
+set tche 1.0
+set vsiz 0.35
+set xwid 0.5
+set ywid 1.0
+set xmgr 0.4
+set pass 8
+set cshi 0.01
+
+set xwin 1.5
+*set ywin 2.5
+
+ve/create par(3) r  12.3 0.75 0.32
+
+
+ve/create qv(3) r 0.3 0.38 0.57
+ve/create ymax(3) r 0.035 0.035 0.028
+
+
+np = 3
+
+zone 1 [np]
+
+
+mp = 0.93927
+pi = 3.14159
+
+
+np = 3
+
+do i=1,[np]
+
+ if [i] > [np]-1 then
+   set yval  0.3
+   set ylab  1.0
+ endif
+
+
+ xmax[i] = 0.349
+ ymax[i] = ymax([i])
+ qv[i] = qv([i])
+ mess [i] [qv[i]]
+ 
+ ve/read  nul[i],rt[i],ert[i],rl[i],erl[i] jourdan-resp-qv[qv[i]].dat
+
+ ve/read  qv2[i],q22[i],w22[i],nu2[i],rttot[i],rltot[i],rtqe[i],rlqe[i],rtie[i],rlie[i],rtte[i],rlte[i],rtns[i],rlns[i]  resp-qv[qv[i]].dat
+
+ ve/read  nu3[i],rtqe3[i],rlqe3[i] rt-qv[qv[i]].dat
+
+
+
+ sigma xerr[i] = 0.0*nul[i]
+
+ null 0.01 [xmax[i]] 0.0 [ymax[i]]
+
+ hplot/err nul[i] rt[i] xerr[i] ert[i] 200 21 0.25 22
+
+
+ text1 = "Jourdan96"
+
+ text2 = q! = [qv[i]]
+
+ set ltyp 1
+ set plci 4
+ graph 6000 nu2[i] rtqe[i] 'C'
+
+ if [i]=1 then 
+  GRAPHICS/HPLOT/KEY 0.05 [ymax[i]]*0.94 1 'QE' 1 L
+ endif
+
+ set ltyp 2
+ set plci 2
+ graph 6000 nu2[i] rtns[i] 'C'
+ 
+ if [i]=1 then 
+  GRAPHICS/HPLOT/KEY 0.13 [ymax[i]]*0.94 2 'Nuclear Excitations' 1 L
+ endif
+
+ set ltyp 2
+ set plci 1
+ graph 6000 nu2[i] rtie[i] 'C'
+
+ if [i]=1 then 
+   GRAPHICS/HPLOT/KEY 0.05 [ymax[i]]*0.80 2 'Inelastic' 1 L
+ endif
+ 
+ set ltyp 1
+ set plci 6
+
+ graph 6000 nu2[i] rttot[i] 'C'
+
+ if [i]=1 then 
+   GRAPHICS/HPLOT/KEY 0.13 [ymax[i]]*0.80 1 'Total' 1 L
+ endif
+
+
+ set ltyp 4
+ set plci 1
+ graph 6000 nu2[i] rtte[i] 'C'
+
+
+ hplot/err nul[i] rt[i] xerr[i] ert[i] 200 21 0.25 22
+
+
+ if [i]=1 then 
+   GRAPHICS/HPLOT/KEY 0.13 [ymax[i]]*0.66 4 'Trans. Enhancement' 1 L
+ endif
+ 
+ if [i]=1 then 
+   key 0.13 [ymax[i]]*0.53 21 'Jourdan96' 
+ endif
+
+ TEXT 0.299 0.695*[ymax[i]] [text2] 0.32 0. L
+
+ string3 = R?T!
+ if [i]=2 then
+   TEXT -0.03 0.35*[ymax[i]] [string3] 0.7 90. L  
+ endif
+
+
+ string4 = [n] (GeV)
+ if [i]=3 then
+   TEXT 0.15 -0.35*[ymax[i]] [string4] 0.7 0. L  
+ endif
+
+
+
+*string1 = E = [eb[i]] [Q] = [theta[i]]
+
+
+
+* TEXT 0.91 0.85*[ymax[i]] [text1] 0.20 0. L
+
+
+
+enddo
+
+*  ATITLE  ' ' '[s]?red! / |W^2! - M?p!^2!| (nb/GeV^2!)' ! 220

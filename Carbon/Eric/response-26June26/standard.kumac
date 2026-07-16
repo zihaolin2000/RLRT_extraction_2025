@@ -1,0 +1,24 @@
+*set *; opt *; title; title ! U
+set lwid 5
+set mtyp 20
+symbol = 22
+symbol2 = [symbol]-1
+symbol3 = [symbol]-2
+symbsize = .35
+set xlab 1.9
+set ylab 1.4
+set lfon 3
+set cfon 2
+set txci 1
+set PASS 3
+set xmgl 3.25
+set xmgr 0.2
+set ymgl 3.0
+set ymgu 2.0
+set ywin .01
+set plci 1
+opt nbox
+set asiz 0.8
+set csiz 0.35
+
+
