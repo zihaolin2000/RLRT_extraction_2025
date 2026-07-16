@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-from .presets import *
+# from .presets import *
+from .presets_Ca40 import *
 from .utilities import rt_quasi_deuteron, linear_model, special_sigmoid
-from .christy_bodek_fit import calculate_response_table
+from .christy_bodek_fit_unknown import calculate_response_table
 
 
-def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err : float = 0.0) -> pd.DataFrame:
+def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err : float = 0.0, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
     """
     Prepare a table (pd.DataFrame) for Rosenbluth RL RT seperation.
 
@@ -20,7 +21,10 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
         Value for nucleus coulomb correction. Default: 0.0031 (carbon)
     syst_err : float, optional
         Systematic error (0 ~ 1) to add to cross section error.
-    
+    mass_nucleus : float, optional
+        Mass of nucleus in GeV.
+        Default: mass of Carbon nucleus, 11.178.
+
     Returns
     ----------
     pd.DataFrame
@@ -49,7 +53,7 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
     df["sin2(T/2)"]=(np.sin(df["ThetaRad"]/2))**2
     df["cos2(T/2)"]=(np.cos(df["ThetaRad"]/2))**2
     df["tan2(T/2)"]=(np.tan(df["ThetaRad"]/2))**2
-    df["Ex"] = df["nu"] - (df["E0"]-df["E0"]/(1+2*df["E0"]*df["sin2(T/2)"] / MASS_C12))
+    df["Ex"] = df["nu"] - (df["E0"]-df["E0"]/(1+2*df["E0"]*df["sin2(T/2)"] / mass_nucleus))
     df["Ep"]=df["E0"]-df["nu"]
     df['Veff'] = vcoul
     df["Ffoc2"]=((df["E0"]+df["Veff"])/df["E0"])**2
@@ -90,7 +94,7 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
     df["Q2bin"]=pd.cut(x=df["Q2"],bins=Q2BINS,labels=Q2BIN_NAMES,right=True)
     df["Q2center"]=pd.cut(x=df["Q2"],bins=Q2BINS,labels=Q2CENTERS,right=True)
     df['Q2center']=pd.to_numeric(df['Q2center'])
-    df = df.dropna()
+    # df = df.dropna()
     df['W2bin_q2']=0.0
     df['W2center_q2']=0.0
     df['nucenter_w2_q2']=0.0
@@ -119,7 +123,7 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
             Excenters = (Exedges[:-1] + Exedges[1:]) / 2
             df.loc[mask, 'Exbin_q2'] = pd.cut(df.loc[mask, 'Ex'], bins=Exedges, labels=False, include_lowest=True,duplicates='drop')
             df.loc[mask, 'Excenter_q2'] = df.loc[mask, 'Exbin_q2'].map(lambda i: Excenters[int(i)] if pd.notnull(i) else np.nan)
-            df.loc[mask, 'nucenter_ex_q2']=df.loc[mask, 'Excenter_q2']+Q2center/(2*MASS_C12)
+            df.loc[mask, 'nucenter_ex_q2']=df.loc[mask, 'Excenter_q2']+Q2center/(2*mass_nucleus)
             df.loc[mask, 'epcenter_ex_q2']=1/(1+2*(1+(df.loc[mask, 'nucenter_ex_q2']**2)/Q2center)*df.loc[mask, 'tan2(T/2)']) 
 
         ## Ex >= EX_CUT: extract at W2 center
@@ -147,7 +151,7 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
             Excenters = (Exedges[:-1] + Exedges[1:]) / 2
             df.loc[mask, 'Exbin_qv'] = pd.cut(df.loc[mask, 'Ex'], bins=Exedges, labels=False, include_lowest=True,duplicates='drop')
             df.loc[mask, 'Excenter_qv'] = df.loc[mask, 'Exbin_qv'].map(lambda i: Excenters[int(i)] if pd.notnull(i) else np.nan)
-            df.loc[mask, 'nucenter_ex_qv'] = np.sqrt(MASS_C12**2+qvcenter**2+2*MASS_C12*df.loc[mask, 'Excenter_qv'])-MASS_C12
+            df.loc[mask, 'nucenter_ex_qv'] = np.sqrt(mass_nucleus**2+qvcenter**2+2*mass_nucleus*df.loc[mask, 'Excenter_qv'])-mass_nucleus
             df.loc[mask, 'epcenter_ex_qv']=1/(1+2*(1+(df.loc[mask, 'nucenter_ex_qv']**2)/(qvcenter**2-df.loc[mask, 'nucenter_ex_qv']**2))*df.loc[mask, 'tan2(T/2)']) 
 
         ## Ex >= EX_CUT: extract at W2 center or (nu center)
@@ -169,11 +173,11 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
                 df.loc[mask, 'nucenter_w2_qv'] = np.sqrt(qvcenter**2+df.loc[mask, 'W2center_qv'])-MASS_NUCLEON
                 df.loc[mask, 'epcenter_w2_qv']=1/(1+2*(1+(df.loc[mask, 'nucenter_w2_qv']**2)/(qvcenter**2-df.loc[mask, 'nucenter_w2_qv']**2))*df.loc[mask, 'tan2(T/2)'])
 
-    df=df.dropna()
+    # df=df.dropna()
     return df
 
-def calculate_response_table_update_qd_ie(df_qv_nu : pd.DataFrame):
-    df = calculate_response_table(table = df_qv_nu)
+def calculate_response_table_update_qd_ie(df_qv_nu : pd.DataFrame, a : float = 12.0, z : float = 6.0):
+    df = calculate_response_table(table = df_qv_nu, a=a, z=z)
     # FIXME: the shift is wrong. Don't do the entire dataframe.
     # # shift the inelastic peak at low q2
     # q2_suppression = special_sigmoid(df['q2'], center = 0.03, width= 0.005) # apply shifts at low q2 only
@@ -192,7 +196,7 @@ def calculate_response_table_update_qd_ie(df_qv_nu : pd.DataFrame):
         df[col] = df[col] * 1e3 # convert from MeV^-1 to GeV^-1
     return df
 
-def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
+def calculate_bin_centering_correction(df_xsec : pd.DataFrame, mass_nucleus : float = MASS_C12, a: float = 12.0, z: float = 6.0) -> pd.DataFrame:
     """
     Calculate bin-centering correction factors for Rosenbluth reduced cross
     section.
@@ -206,7 +210,14 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
         Value for nucleus coulomb correction. Default: 0.0031 (carbon)
     syst_err : float, optional
         Systematic error (0 ~ 1) to add to cross section error.
-    
+    mass_nucleus : float, optional
+        Mass of nucleus in GeV.
+        Default: mass of Carbon nucleus, 11.178.
+    a : float
+        Nuclear mass number A.
+    z : float
+        Nuclear charge Z.
+
     Returns
     ----------
     pd.DataFrame
@@ -219,16 +230,16 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
     nus = (df['W2center_q2'] + df['Q2center'] - MASS_NUCLEON**2) / (2*MASS_NUCLEON)
     qvs = np.sqrt(df['Q2center'] + nus**2)
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_q2c_w2'] = df_response['rltot'].values
     df['RT_q2c_w2'] = df_response['rttot'].values
     # df['RT_q2c_w2'] = df['RT_q2c_w2'] + rt_quasi_deuteron(nus=df['nucenter_w2_q2'],q2s = df['Q2center'],
-    #     exs = df['nucenter_w2_q2']-df['Q2center']/(2*MASS_C12)) # RT quasi deuteron added 2025 July 18
+    #     exs = df['nucenter_w2_q2']-df['Q2center']/(2*mass_nucleus)) # RT quasi deuteron added 2025 July 18
     # CBfit response values at data effective Q2 W2:
     nus = (df['W2'] + df['Q2'] - MASS_NUCLEON**2) / (2*MASS_NUCLEON)
     qvs = np.sqrt(df['Q2'] + nus**2)
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_q2d_w2'] = df_response['rltot'].values
     df['RT_q2d_w2'] = df_response['rttot'].values
     # df['RT_q2d_w2'] = df['RT_q2d_w2'] + df['RT_QD_data'] # RT quasi deuteron added 2025 July 18
@@ -244,17 +255,17 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
 
     # ====== calculate bin centering correction factor to Q2 Ex bin center, bc_q2_ex ======
     # CBfit response values at Q2 Ex bin center:
-    nus = df['Excenter_q2'] + df['Q2center']/(2*MASS_C12)
+    nus = df['Excenter_q2'] + df['Q2center']/(2*mass_nucleus)
     qvs = np.sqrt(df['Q2center'] + nus**2)
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_q2c_ex'] = df_response['rltot'].values
     df['RT_q2c_ex'] = df_response['rttot'].values
     # df['RT_q2c_ex'] = df['RT_q2c_ex'] + rt_quasi_deuteron(nus=df['nucenter_ex_q2'],q2s = df['Q2center'],exs = df['Excenter_q2'])# RT quasi deuteron added 2025 July 18
     # # CBfit response values at data effective Q2 Ex:
-    nus = df['Ex'] + df['Q2']/(2*MASS_C12)
+    nus = df['Ex'] + df['Q2']/(2*mass_nucleus)
     qvs = np.sqrt(df['Q2'] + nus**2)
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_q2d_ex'] = df_response['rltot'].values
     df['RT_q2d_ex'] = df_response['rttot'].values
     # df['RT_q2d_ex'] = df['RT_q2d_ex'] + + df['RT_QD_data'] # RT quasi deuteron added 2025 July 18
@@ -274,16 +285,16 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
     nus = np.sqrt(df['qvcenter']**2 + df['W2center_qv']) - MASS_NUCLEON
     qvs = df['qvcenter']
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_qvc_w2'] = df_response['rltot'].values
     df['RT_qvc_w2'] = df_response['rttot'].values
     # df['RT_qvc_w2'] = df['RT_qvc_w2'] + rt_quasi_deuteron(nus=df['nucenter_w2_qv'],q2s = df['qvcenter']**2-df['nucenter_w2_qv']**2,
-    #                             exs = df['nucenter_w2_qv'] - (df['qvcenter']**2-df['nucenter_w2_qv']**2)/(2*MASS_C12)) # RT quasi deuteron added 2025 July 18
+    #                             exs = df['nucenter_w2_qv'] - (df['qvcenter']**2-df['nucenter_w2_qv']**2)/(2*mass_nucleus)) # RT quasi deuteron added 2025 July 18
     # CBfit response values at data effective qv W2:
     nus = np.sqrt(df['qv']**2 + df['W2']) - MASS_NUCLEON
     qvs = df['qv']
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_qvd_w2'] = df_response['rltot'].values
     df['RT_qvd_w2'] = df_response['rttot'].values
     # df['RT_qvd_w2'] = df['RT_qvd_w2'] + df['RT_QD_data'] # RT quasi deuteron added 2025 July 18
@@ -299,19 +310,19 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
 
     # ====== calculate bin centering correction factor to qv Ex bin center, bc_qv_ex ======
     # CBfit response values at qv Ex bin center:
-    nus = np.sqrt(MASS_C12**2 + df['qvcenter']**2 + 2*MASS_C12*df['Excenter_qv']) - MASS_C12
+    nus = np.sqrt(mass_nucleus**2 + df['qvcenter']**2 + 2*mass_nucleus*df['Excenter_qv']) - mass_nucleus
     qvs = df['qvcenter']
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_qvc_ex'] = df_response['rltot'].values
     df['RT_qvc_ex'] = df_response['rttot'].values
     # df['RT_qvc_ex'] = df['RT_qvc_ex'] + rt_quasi_deuteron(nus=df['nucenter_ex_qv'],q2s = df['qvcenter']**2-df['nucenter_ex_qv']**2,
     #     exs = df['Excenter_qv']) # RT quasi deuteron added 2025 July 18
     # CBfit response values at data effective qv Ex:
-    nus = np.sqrt(MASS_C12**2 + df['qv']**2 + 2*MASS_C12*df['Ex']) - MASS_C12
+    nus = np.sqrt(mass_nucleus**2 + df['qv']**2 + 2*mass_nucleus*df['Ex']) - mass_nucleus
     qvs = df['qv']
     df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
-    df_response = calculate_response_table_update_qd_ie(df_response)
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
     df['RL_qvd_ex'] = df_response['rltot'].values
     df['RT_qvd_ex'] = df_response['rttot'].values
     # df['RT_qvd_ex'] = df['RT_qvd_ex'] + df['RT_QD_data'] # RT quasi deuteron added 2025 July 18
@@ -328,8 +339,68 @@ def calculate_bin_centering_correction(df_xsec : pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def calculate_bc_qv_w2(df_xsec : pd.DataFrame, mass_nucleus : float = MASS_C12, a: float = 12.0, z: float = 6.0) -> pd.DataFrame:
+    """
+    Calculate bin-centering correction factors for Rosenbluth reduced cross
+    section.
+
+    Parameters
+    ----------
+    df_xsec : pd.DataFrame
+        Electron scattering cross section data table consisting of columns:
+        A, Z, nu(GeV), e0(GeV), theta(degrees), xsec, xsec_err, dataset
+    vcoul : float, optional
+        Value for nucleus coulomb correction. Default: 0.0031 (carbon)
+    syst_err : float, optional
+        Systematic error (0 ~ 1) to add to cross section error.
+    mass_nucleus : float, optional
+        Mass of nucleus in GeV.
+        Default: mass of Carbon nucleus, 11.178.
+    a : float
+        Nuclear mass number A.
+    z : float
+        Nuclear charge Z.
+
+    Returns
+    ----------
+    pd.DataFrame
+        Table that contains necessary information to extract RL RT.    
+    """
+    df = df_xsec.copy()
+
+    # ====== calculate bin centering correction factor to qv W2 bin center, bc_qv_w2 ======
+    # CBfit response values at qv W2 bin center:
+    nus = np.sqrt(df['qvcenter']**2 + df['W2center_qv']) - MASS_NUCLEON
+    qvs = df['qvcenter']
+    df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
+    df['RL_qvc_w2'] = df_response['rltot'].values
+    df['RT_qvc_w2'] = df_response['rttot'].values
+    # df['RT_qvc_w2'] = df['RT_qvc_w2'] + rt_quasi_deuteron(nus=df['nucenter_w2_qv'],q2s = df['qvcenter']**2-df['nucenter_w2_qv']**2,
+    #                             exs = df['nucenter_w2_qv'] - (df['qvcenter']**2-df['nucenter_w2_qv']**2)/(2*mass_nucleus)) # RT quasi deuteron added 2025 July 18
+    # CBfit response values at data effective qv W2:
+    nus = np.sqrt(df['qv']**2 + df['W2']) - MASS_NUCLEON
+    qvs = df['qv']
+    df_response = pd.DataFrame({'qv':qvs, 'nu':nus})
+    df_response = calculate_response_table_update_qd_ie(df_response, a = a, z = z)
+    df['RL_qvd_w2'] = df_response['rltot'].values
+    df['RT_qvd_w2'] = df_response['rttot'].values
+    # df['RT_qvd_w2'] = df['RT_qvd_w2'] + df['RT_QD_data'] # RT quasi deuteron added 2025 July 18
+    df['bc_qv_w2']=1.0
+    for qvcenter in QVCENTERS:
+        ## Ex >= 50MeV:
+        mask = (df['qvcenter'] == qvcenter) & (df['Ex'] >= EX_CUT) # use Ex >= EX_CUT
+        df.loc[mask, 'bc_qv_w2']=(df.loc[mask, 'epcenter_w2_qv']*df.loc[mask, 'RL_qvc_w2']
+                +0.5*((qvcenter**2)/(qvcenter**2-df.loc[mask,'nucenter_w2_qv']**2))*df.loc[mask, 'RT_qvc_w2']
+            )/(df.loc[mask, 'epsilon']*df.loc[mask, 'RL_qvd_w2']
+            +0.5*(df.loc[mask, 'qv2']/df.loc[mask, 'Q2'])*df.loc[mask, 'RT_qvd_w2'])
+    print('RL RT bin centering correction factor bc_qv_w2 done.')
+
+
+    return df
+
 def extract_response_q2bin_w2center(df : pd.DataFrame, q2center : float = 0.01, bin_centering : bool = True,
-        absolute_sigma : bool = True, min_epsilon_range : int = 0.3) -> pd.DataFrame:
+        absolute_sigma : bool = True, min_epsilon_range : int = 0.3, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
     if q2center == 0.01:
         df_q2bin = df.loc[(df['Q2center']==q2center) & (df['Ex'] >= EX_CUT_LOWQ)].copy()
     else:
@@ -346,7 +417,7 @@ def extract_response_q2bin_w2center(df : pd.DataFrame, q2center : float = 0.01, 
         df_w2bin = df_q2bin.loc[(df_q2bin['W2center_q2']==w2center)]
         nuc = (w2center - MASS_NUCLEON**2 + q2center)/(2 * MASS_NUCLEON)
         qvc2 = (q2center + nuc**2)
-        exc = nuc - q2center/(2 * MASS_C12)
+        exc = nuc - q2center/(2 * mass_nucleus)
         x = np.array(df_w2bin["epsilon"])        
         y = np.array(df_w2bin["rosenbluth_xsec"])
         yerr = np.array(df_w2bin["rosenbluth_xsec_err"])
@@ -370,7 +441,7 @@ def extract_response_q2bin_w2center(df : pd.DataFrame, q2center : float = 0.01, 
     return df_rlrt
 
 def extract_response_q2bin_excenter(df : pd.DataFrame, q2center : float = 0.01, bin_centering : bool = True, 
-        absolute_sigma : bool = True, min_epsilon_range : int = 0.03):
+        absolute_sigma : bool = True, min_epsilon_range : int = 0.03, mass_nucleus : float = MASS_C12):
     if q2center <= 0.01:
         df_q2bin = df.loc[(df['Q2center'] == q2center) & (df['Ex'] < EX_CUT_LOWQ)].copy()
     else:
@@ -385,7 +456,7 @@ def extract_response_q2bin_excenter(df : pd.DataFrame, q2center : float = 0.01, 
     df_rlrt = []
     for excenter in np.sort(df_q2bin['Excenter_q2'].unique()):
         df_exbin = df_q2bin.loc[(df_q2bin['Excenter_q2'] == excenter)]
-        nuc = excenter + q2center/(2*MASS_C12)
+        nuc = excenter + q2center/(2*mass_nucleus)
         qvc2 = (q2center+nuc**2)
         w2c = MASS_NUCLEON**2 + 2 * MASS_NUCLEON * nuc - q2center
         x = np.array(df_exbin["epsilon"])        
@@ -409,7 +480,7 @@ def extract_response_q2bin_excenter(df : pd.DataFrame, q2center : float = 0.01, 
     return df_rlrt
     
 def extract_response_qvbin_w2center(df : pd.DataFrame, qvcenter : float = 0.01, bin_centering : bool = True,
-        absolute_sigma : bool = True, min_epsilon_range : int = 0.3) -> pd.DataFrame:
+        absolute_sigma : bool = True, min_epsilon_range : int = 0.3, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
     if qvcenter <= 0.1:
         df_qvbin = df.loc[(df['qvcenter']==qvcenter) & (df['Ex']>=EX_CUT_LOWQ)].copy()
     else:
@@ -424,10 +495,11 @@ def extract_response_qvbin_w2center(df : pd.DataFrame, qvcenter : float = 0.01, 
     df_rlrt = []
     for w2center in np.sort(df_qvbin['W2center_qv'].unique()):
         df_w2bin = df_qvbin.loc[(df_qvbin['W2center_qv']==w2center)]
+        print('len df_w2bin', len(df_qvbin))
         nuc = np.sqrt(qvcenter**2+w2center)-MASS_NUCLEON
         qvc2 = qvcenter**2
         q2center = qvc2-nuc**2
-        exc = nuc - q2center/(2*MASS_C12)
+        exc = nuc - q2center/(2*mass_nucleus)
         x = np.array(df_w2bin["epsilon"])
         y = np.array(df_w2bin["rosenbluth_xsec"])
         yerr = np.array(df_w2bin["rosenbluth_xsec_err"])
@@ -449,7 +521,7 @@ def extract_response_qvbin_w2center(df : pd.DataFrame, qvcenter : float = 0.01, 
     return df_rlrt
 
 def extract_response_qvbin_excenter(df : pd.DataFrame, qvcenter : float = 0.01, bin_centering : bool = True,
-        absolute_sigma : bool = True, min_epsilon_range : int = 0.3) -> pd.DataFrame:
+        absolute_sigma : bool = True, min_epsilon_range : int = 0.3, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
     if qvcenter <= 0.1:
         df_qvbin = df.loc[(df['qvcenter']==qvcenter) & (df['Ex']<EX_CUT_LOWQ)].copy()
     else:
@@ -464,7 +536,7 @@ def extract_response_qvbin_excenter(df : pd.DataFrame, qvcenter : float = 0.01, 
     df_rlrt = []
     for excenter in df_qvbin['Excenter_qv'].unique():
         df_exbin = df_qvbin.loc[(df_qvbin['Excenter_qv']==excenter)]
-        nuc = np.sqrt(MASS_C12**2+qvcenter**2+2*MASS_C12*excenter)-MASS_C12
+        nuc = np.sqrt(mass_nucleus**2+qvcenter**2+2*mass_nucleus*excenter)-mass_nucleus
         qvc2 = qvcenter**2
         q2center = qvc2 - nuc**2
         w2c = MASS_NUCLEON**2 + 2 * MASS_NUCLEON * nuc - q2center
