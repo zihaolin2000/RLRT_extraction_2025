@@ -700,10 +700,109 @@ def mec2021(z: float, a: float, w2: float, q2: float, xvalm: Sequence[float]) ->
     return f1mec if f1mec > 1.0e-9 else 0.0
 
 
-def quasideut(z: float, a: float, w2: float, q2: float, xvalm: Sequence[float]) -> float:
-    """Translate QUASIDEUT. The active 07/06/26 source explicitly sets sigqd=0."""
-    _ = (z, a, w2, q2, xvalm)
-    return 0.0
+# FIXME: the default qd contribution is set to 0, might be a mistake.
+# def quasideut(z: float, a: float, w2: float, q2: float, xvalm: Sequence[float]) -> float:
+#     """Translate QUASIDEUT. The active 07/06/26 source explicitly sets sigqd=0."""
+#     _ = (z, a, w2, q2, xvalm)
+#     return 0.0
+
+
+def quasideut(
+    z: float,
+    a: float,
+    w2: float,
+    q2: float,
+    xvalm: Sequence[float],
+) -> float:
+    """Calculate the quasi-deuteron transverse contribution F1_QD.
+
+    This follows quasideut.f but intentionally omits the Fortran line
+
+        sigqd = 0.0
+
+    which disables the calculated contribution.
+
+    Parameters
+    ----------
+    z, a
+        Nuclear proton and mass numbers.
+    w2
+        Hadronic invariant mass squared in GeV^2.
+    q2
+        Positive Q^2 in GeV^2.
+    xvalm
+        Retained for compatibility with the Fortran interface. It is not
+        used by the currently active quasi-deuteron parameterization.
+    """
+    _ = xvalm
+
+    mp = 0.938272
+    mp2 = mp * mp
+    alpha = 1.0 / 137.036
+    pi2 = 9.86959
+
+    n = a - z
+    f1qd = 0.0
+
+    if w2 <= 0.0:
+        return 0.0
+
+    nu = (w2 - mp2 + q2) / (2.0 * mp)
+
+    # Prevent division by zero or unphysical negative photon energy.
+    if nu <= 0.0:
+        return 0.0
+
+    egam = nu * 1000.0  # Convert GeV to MeV.
+
+    if a < 2.5:
+        return 0.0
+
+    # Deuteron photodisintegration suppression factor.
+    if egam < 20.0:
+        psid = math.exp(-73.3 / egam)
+    elif egam < 140.0:
+        psid = (
+            8.3714e-2
+            - 9.8343e-3 * egam
+            + 4.1222e-4 * egam**2
+            - 3.4762e-6 * egam**3
+            + 9.3537e-9 * egam**4
+        )
+    else:
+        psid = math.exp(-24.2 / egam)
+
+    # The Fortran subsequently forces psid to zero at and below 20 MeV.
+    if egam <= 20.0:
+        psid = 0.0
+
+    sigqd = (
+        397.8
+        * n
+        * z
+        * (egam - 2.224) ** 1.5
+        / egam**3
+        * psid
+    )
+
+    sigqd /= (1.0 + q2 / 0.1) ** 5.0
+
+    # Intentionally omitted:
+    # sigqd = 0.0
+
+    f1qd = (
+        sigqd
+        / (8.0 * pi2 * alpha * 3.894e3)
+        * abs(w2 - mp2)
+    )
+
+    f1qd *= 1000.0
+
+    if q2 > 0.5:
+        f1qd = 0.0
+
+    return f1qd
+
 
 # -----------------------------------------------------------------------------
 # nucffs12c.f / nucffs12ct.f / nuc12sf.f
@@ -935,7 +1034,7 @@ OUTPUT_COLUMNS = [
     "qv", "q2", "ex", "nu",
     "rttot", "rltot", "rtqe", "rlqe",
     "rtie", "rlie", "rte", "rle",
-    "rtns", "rlns"
+    "rtns", "rlns", "rtqd", "rlqd"
 ]
 
 
@@ -973,6 +1072,10 @@ def calculate_response_point(qv: float, nu: float, *, a: float = 12.0, z: float 
     rttot += rtns
     rltot += rlns
 
+    f1qd = quasideut(z, a, w2, q2, xvalc)
+    rtqd = 2.0 / MP_MAIN * f1qd / 1000.0
+    rlqd = 0.0
+
     return {
         "qv": qv, "q2": q2, "ex": ex, "nu": nu,
         "rttot": rttot, "rltot": rltot,
@@ -980,6 +1083,7 @@ def calculate_response_point(qv: float, nu: float, *, a: float = 12.0, z: float 
         "rtie": rtie, "rlie": rlie,
         "rte": rte, "rle": rle,
         "rtns": rtns, "rlns": rlns,
+        'rtqd': rtqd, 'rlqd': rlqd
     }
 
 
@@ -1033,7 +1137,9 @@ def calculate_response_table(table: pd.DataFrame | np.ndarray | Iterable[tuple[f
                 "rte": 0.0,
                 "rle": 0.0,
                 "rtns": 0.0,
-                "rlns": 0.0})
+                "rlns": 0.0,
+                "rtqd": 0.0,
+                "rlqd": 0.0})
 
     return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
 
