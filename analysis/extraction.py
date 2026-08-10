@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-# from .presets import *
-from .presets_Ca40 import *
+from .presets import *
 from .utilities import rt_quasi_deuteron, linear_model, special_sigmoid
 from .christy_bodek_fit import calculate_response_table
 
@@ -495,7 +494,6 @@ def extract_response_qvbin_w2center(df : pd.DataFrame, qvcenter : float = 0.01, 
     df_rlrt = []
     for w2center in np.sort(df_qvbin['W2center_qv'].unique()):
         df_w2bin = df_qvbin.loc[(df_qvbin['W2center_qv']==w2center)]
-        print('len df_w2bin', len(df_qvbin))
         nuc = np.sqrt(qvcenter**2+w2center)-MASS_NUCLEON
         qvc2 = qvcenter**2
         q2center = qvc2-nuc**2
