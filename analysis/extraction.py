@@ -5,7 +5,7 @@ from scipy.interpolate import interp1d
 # from .presets import *
 from .presets_Ca40 import *
 from .utilities import rt_quasi_deuteron, linear_model, special_sigmoid
-from .christy_bodek_fit_unknown import calculate_response_table
+from .christy_bodek_fit import calculate_response_table
 
 
 def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err : float = 0.0, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
