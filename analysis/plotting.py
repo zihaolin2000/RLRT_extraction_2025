@@ -153,7 +153,7 @@ RLRT_Q2INSET_XLIMS = {
 }
 
 def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float] = [0.3, 0.38, 0.57], figsize_per_row : tuple[float, float] = (11, 1.8),
-        sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_QVPLOT_LIST,
+        sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_QVPLOT_LIST, sheet_CBfit : pd.DataFrame = None,
         exp_plot_list : list[str] = EXP_QVPLOT_LIST, mc_plot_list : list[str] = MC_QVPLOT_LIST) -> Figure:
     # TODO: add comments
 
@@ -163,7 +163,8 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
 
     repo_path = Path(__file__).resolve().parent.parent
     plot_xlsx = repo_path/'Carbon/one_sheet_to_rule_them_all.xlsx'
-    sheet_CBfit = pd.read_excel(plot_xlsx, sheet_name='CBfit_qvbin')
+    if sheet_CBfit is None:
+        sheet_CBfit = pd.read_excel(plot_xlsx, sheet_name='CBfit_qvbin')
     sheet_mc_rl = pd.read_excel(plot_xlsx, sheet_name='mc_rl_qvbin')
     sheet_mc_rt = pd.read_excel(plot_xlsx, sheet_name='mc_rt_qvbin')
     sheet_exp_rl = pd.read_excel(plot_xlsx, sheet_name='exp_rl_qvbin')
@@ -303,7 +304,7 @@ def plot_response_qvbin(df_this_analysis : pd.DataFrame, qvcenters : list[float]
     return fig
 
 def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float] = [0.093, 0.12, 0.16], figsize_per_row : tuple[float, float] = (11, 1.8),
-        sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_Q2PLOT_LIST,
+        sharex : bool = False, figshow : bool = False, theory_plot_list : list[str] = THEORY_Q2PLOT_LIST, sheet_CBfit : pd.DataFrame = None,
         exp_plot_list : list[str] = EXP_Q2PLOT_LIST, mc_plot_list : list[str] = MC_Q2PLOT_LIST) -> Figure:
     
     fig, axs = plt.subplots(nrows=len(q2centers), ncols=2, figsize=(figsize_per_row[0], figsize_per_row[1] * len(q2centers) + 1.5), dpi=200, sharex=sharex, squeeze=False)
@@ -312,7 +313,8 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
 
     repo_path = Path(__file__).resolve().parent.parent
     plot_xlsx = repo_path/'Carbon/one_sheet_to_rule_them_all.xlsx'
-    sheet_CBfit = pd.read_excel(plot_xlsx, sheet_name='CBfit_q2bin')
+    if sheet_CBfit is None:
+        sheet_CBfit = pd.read_excel(plot_xlsx, sheet_name='CBfit_qvbin')
     sheet_mc_rl = pd.read_excel(plot_xlsx, sheet_name='mc_rl_q2bin')
     sheet_mc_rt = pd.read_excel(plot_xlsx, sheet_name='mc_rt_q2bin')
     sheet_exp_rl = pd.read_excel(plot_xlsx, sheet_name='exp_rl_q2bin')
