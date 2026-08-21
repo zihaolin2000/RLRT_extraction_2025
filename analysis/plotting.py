@@ -8,6 +8,10 @@ from scipy.interpolate import interp1d
 from pathlib import Path
 from .utilities import rt_quasi_deuteron
 from .presets import *
+from .christy_bodek_fit import calculate_cross_section_table
+from .christy_bodek_fit_C12_2025archive import calculate_cross_section_table as calculate_cross_section_table_2025
+
+from matplotlib.backends.backend_pdf import PdfPages
 
 # plot lists
 EXP_QVPLOT_LIST = ['Yamaguchi', 'Barreau', 'Jourdan', 'Goldemberg', 'Buki', 'Photo-production']
@@ -487,4 +491,59 @@ def plot_response_q2bin(df_this_analysis : pd.DataFrame, q2centers : list[float]
     plt.close()
 
     return fig
+
+def plot_cross_section(df : pd.DataFrame, pdf_path : str):
+    ds_e0_thetas = []
+    for ds in np.sort(df['dataSet'].unique()):
+        df_ds = df.loc[df['dataSet']==ds]
+        for E0 in np.sort(df_ds['E0'].unique()):
+            df_E0 = df_ds.loc[df_ds['E0']==E0]
+            for theta in np.sort(df_E0['ThetaDeg'].unique()):
+                ds_e0_thetas.append((ds, E0, theta))
+    with PdfPages(pdf_path) as pdf:
+        n_plots = len(ds_e0_thetas)
+        n_pages = int(np.floor(n_plots / 16)+1)
+        for p in range(n_pages):
+            fig, axs = plt.subplots(nrows=4, ncols=4, figsize=(25,20))
+            for i, ax in enumerate(axs.flat):
+                if p * 16 + i <= n_plots - 1:
+                    ds, e0, theta = ds_e0_thetas[p * 16 + i]
+                    df_plot = df.loc[(df['dataSet']==ds) & (df['E0']==e0) & (df['ThetaDeg']==theta)].copy()
+                    df_plot = df_plot.sort_values(by='nu')
+                    ax.errorbar(df_plot['nu'], df_plot['cross'], yerr=df_plot['error'], fmt='o', ms=3, label=f'data {ds}')
+
+                    inputs = pd.DataFrame()
+                    inputs['nu'] = np.linspace(df_plot['nu'].min()*0.95, df_plot['nu'].max()*1.05, 100)
+                    inputs['e'] = e0
+                    inputs['theta'] = theta
+                    df_CB = calculate_cross_section_table(inputs)
+                    ax.plot(df_CB['nu'], df_CB['xs_total']*12*1000, label='CBfit total 2026', alpha=0.7)
+                    ax.plot(df_CB['nu'], df_CB['xs_qe']*12*1000, label='QE 2026', alpha=0.7, linestyle='-')
+                    ax.plot(df_CB['nu'], df_CB['xs_inelastic']*12*1000, label='inel 2026', alpha=0.7, linestyle='-')
+                    ax.plot(df_CB['nu'], df_CB['xs_mec']*12*1000, label='mec 2026', alpha=0.7, linestyle='-')
+                    # ax.plot(df_CB['nu'], df_CB['xs_narrow_states']*12*1000, alpha=0.7, linestyle='-')
+
+                    df_CB = calculate_cross_section_table_2025(inputs)
+                    ax.plot(df_CB['nu'], df_CB['xs_total']*12*1000, label='CBfit total 2025', alpha=0.9, linestyle=':')
+                    ax.plot(df_CB['nu'], df_CB['xs_qe']*12*1000, label='QE 2025', alpha=0.9, linestyle='-.')
+                    ax.plot(df_CB['nu'], df_CB['xs_inelastic']*12*1000, label='inel 2025', alpha=0.9, linestyle='--')
+                    ax.plot(df_CB['nu'], df_CB['xs_mec']*12*1000, label='mec 2025', alpha=0.7, linestyle='-')
+                    # ax.plot(df_CB['nu'], df_CB['xs_narrow_states']*12*1000, alpha=0.7, linestyle=':')
+
+                    ax.set_title(f'dataset={ds}:{DATASETS[ds]}, $E_0$={e0}, $\\theta$={theta}')
+                    ax.tick_params(which='both', direction='in')
+                    ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+                    # ax.set_xlim(0, None)
+                    ax.set_ylim(0, None)
+                    if i == 0:
+                        ax.legend(frameon=False)
+            fig.supxlabel('$\\nu$ (GeV)')
+            fig.supylabel('cross section (nb/sr/GeV)')
+            # fig.legend(loc='lower center', bbox_to_anchor=(0.5, -0.05), ncol=4)
+
+            plt.tight_layout()
+            plt.show()
+            pdf.savefig(fig)
+            plt.close()
+
 
