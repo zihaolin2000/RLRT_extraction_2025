@@ -69,7 +69,7 @@ def _plot_rosenbluth_xsec_epsilon_combined(df, qvcenter, df_rlrt):
     plt.xlabel('epsilon')
     plt.xlabel('rosenbluth xsec')
 
-def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err : float = 0.0, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
+def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err : bool = True, mass_nucleus : float = MASS_C12) -> pd.DataFrame:
     """
     Prepare a table (pd.DataFrame) for Rosenbluth RL RT seperation.
 
@@ -80,8 +80,9 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
         A, Z, nu(GeV), e0(GeV), theta(degrees), xsec, xsec_err, dataset
     vcoul : float, optional
         Value for nucleus coulomb correction. Default: 0.0031 (carbon)
-    syst_err : float, optional
-        Systematic error (0 ~ 1) to add to cross section error.
+    syst_err : bool, optional
+        If True, add systematic error to add to cross section error.
+        Default: True
     mass_nucleus : float, optional
         Mass of nucleus in GeV.
         Default: mass of Carbon nucleus, 11.178.
@@ -104,18 +105,35 @@ def prepare_dataframe(df_data : pd.DataFrame, vcoul : float = 0.0031, syst_err :
         df['dataSet']=-1
         df['normalization']=1
         df['normError']=0
+        df['systError']=0
     else:
         df["normalization"]=df["dataSet"].map(NORMALIZATIONS)
         df["normError"]=df["dataSet"].map(NORMALIZATION_ERRORS)
+        df["systError"]=df["dataSet"].map(SYSTEMATIC_ERRORS)
+
+    # add systematics error
+    df['error_with_syst'] = np.sqrt(
+        df['error']**2
+        + ((df['systError']*df['cross'])**2)
+    )
+    # Barreau systematics error stemming from the calorimeter that varies with E':
+    df["Ep"]=df["E0"]-df["nu"]
+    barreau_sys2 = 0.025/(1.0 + (df.loc[df['dataSet']==1]['Ep'])/0.1)
+    df.loc[df['dataSet']==1, 'error_with_syst'] = np.sqrt(
+        df.loc[df['dataSet']==1, 'error_with_syst']**2
+        +barreau_sys2 * (df.loc[df['dataSet']==1,'cross']**2)
+    )
+    if syst_err == False:
+        df['error_with_syst'] = df['error']
+
     df['normCross'] = df['cross'] * df['normalization']
-    df['error'] = np.sqrt(df['error']**2 + ((syst_err*df['cross'])**2)) # add a systematic error. default: 0.0
-    df['normCrossError']=df['normCross']*np.sqrt((df['error']/df['cross'])**2+(df['normError']/df['normalization'])**2)
+    # df['normCrossError']=df['normCross']*np.sqrt((df['error']/df['cross'])**2+(df['normError']/df['normalization'])**2)    
+    df['normCrossError']=df['normCross']*np.sqrt((df['error_with_syst']/df['cross'])**2+(df['normError']/df['normalization'])**2)
     df["ThetaRad"]=df["ThetaDeg"]*np.pi/180
     df["sin2(T/2)"]=(np.sin(df["ThetaRad"]/2))**2
     df["cos2(T/2)"]=(np.cos(df["ThetaRad"]/2))**2
     df["tan2(T/2)"]=(np.tan(df["ThetaRad"]/2))**2
     df["Ex"] = df["nu"] - (df["E0"]-df["E0"]/(1+2*df["E0"]*df["sin2(T/2)"] / mass_nucleus))
-    df["Ep"]=df["E0"]-df["nu"]
     df['Veff'] = vcoul
     df["Ffoc2"]=((df["E0"]+df["Veff"])/df["E0"])**2
     df["E0original"]=df["E0"]
