@@ -510,10 +510,13 @@ def plot_cross_section(df : pd.DataFrame, pdf_path : str):
                     ds, e0, theta = ds_e0_thetas[p * 16 + i]
                     df_plot = df.loc[(df['dataSet']==ds) & (df['E0']==e0) & (df['ThetaDeg']==theta)].copy()
                     df_plot = df_plot.sort_values(by='nu')
-                    ax.errorbar(df_plot['nu'], df_plot['cross'], yerr=df_plot['error'], fmt='o', ms=3, label=f'data {ds}')
+                    ax.errorbar(df_plot['nu'], df_plot['normCross'], yerr=df_plot['normCrossError'], fmt='o', ms=3,capsize=3,alpha=0.7,
+                        label=f'data normalized')
+                    ax.errorbar(df_plot['nu'], df_plot['cross'], yerr=df_plot['error'], fmt='o', ms=3,capsize=3,alpha=0.7,
+                        label=f'data original')
 
                     inputs = pd.DataFrame()
-                    inputs['nu'] = np.linspace(df_plot['nu'].min()*0.95, df_plot['nu'].max()*1.05, 100)
+                    inputs['nu'] = np.linspace(np.max([df_plot['nu'].min(),0.001]), df_plot['nu'].max(), 100)
                     inputs['e'] = e0
                     inputs['theta'] = theta
                     df_CB = calculate_cross_section_table(inputs)
@@ -530,7 +533,7 @@ def plot_cross_section(df : pd.DataFrame, pdf_path : str):
                     ax.plot(df_CB['nu'], df_CB['xs_mec']*12*1000, label='mec 2025', alpha=0.7, linestyle='-')
                     # ax.plot(df_CB['nu'], df_CB['xs_narrow_states']*12*1000, alpha=0.7, linestyle=':')
 
-                    ax.set_title(f'dataset={ds}:{DATASETS[ds]}, $E_0$={e0}, $\\theta$={theta}')
+                    ax.set_title(f'dataset={ds}:{DATASETS[ds]}, $E_0$={round(e0,5)}, $\\theta$={theta},\nnorm={NORMALIZATIONS[ds]}, norm_error={NORMALIZATION_ERRORS[ds]}, syst_error={SYSTEMATIC_ERRORS[ds]}')
                     ax.tick_params(which='both', direction='in')
                     ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
                     # ax.set_xlim(0, None)
